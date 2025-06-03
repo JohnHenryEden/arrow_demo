@@ -1,93 +1,70 @@
-# COBRA_ARROW
+
+# COBRArrow Service
+The COBRArrow service aims to enhance interoperability and computational efficiency across various COBRA tools used for metabolic modeling. COBRArrow leverages Apache Arrow Flight RPC to enable seamless sharing of metabolic models between COBRA tools implemented in different programming languages. The service architecture is shown below:
+![alt text](<COBRArrow Architecture.png>)
+
+# Key Features
+1. Model Sharing:
+   - Models are sent to the RPC server as Apache Arrow tables, where they are stored in the server's memory space. 
+   - To ensure data persistence and prevent loss, models can also be persisted to DuckDB, which is in file format (.duckdb file) on the same server.
+   - Models can be fetched by COBRA tools either directly from memory or from DuckDB.
+
+2. Remote Computation:
+   - COBRArrow integrates with COBRA.jl to leverage Julia's computational efficiency. 
+   - The computation server communicates with the RPC server via socket communication, with data transmitted in Arrow format. 
+   - The computation socket server and RPC server can be deployed on separate servers, offering the flexibility to utilize high-performance computing resources, such as supercomputers.
+   - The computation service supports change of different solvers and parameters.
+
+3. Data Handling and Compatibility:
+   - To maintain compatibility with existing COBRA tools, data fetched from the RPC server is converted back to the format native to each tool. For example, in MATLAB, Arrow tables are converted to the original format as found in `.mat` files.
+   - This ensures that users can seamlessly integrate COBRArrow into their existing workflows without compatibility issues. Currently, only MATLAB API is developed to use COBRArrow service.
 
 
-
-## Getting started
-
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+# Directory Structure
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/recon4imd/cobra_arrow.git
-git branch -M main
-git push -uf origin main
+
+├── client/                          # Client-side APIs for MATLAB and Julia
+│   ├── MATLAB_API/                  # MATLAB API code and documentation
+│   │   ├── COBRArrow.m              # Main MATLAB API class for COBRArrow
+│   │   └── COBRArrowSolver.m        # Solver-related functionalities for MATLAB API
+│   │   └── requirements.txt         # Python dependencies in order to use Flight RPC.
+│   │   └── README.md                # Documentation for MATLAB API
+│   ├── Julia_API/                   # Julia API code and documentation
+│   │   ├── COBRArrow.jl             # Main Julia API class for COBRArrow
+│   │   └── README.md                # Documentation for Julia API
+│
+├── server/                          # Server-side components, including Flight RPC and optimization servers
+│   ├── cobrarrow_rpc/           # Python-based Flight RPC server
+│   │   ├── __init__.py              # Initializes the flight_rpc_server package
+│   │   ├── config.py                # Configuration settings for the Flight RPC server
+│   │   ├── flight_server.py         # Main Flight RPC server implementation
+│   │   ├── auth_middleware.py       # Middleware for handling authentication in Flight RPC
+│   │   ├── persist_service.py       # Service for persisting data
+│   │   ├── optimization_client.py   # Client for interacting with the optimization server
+│   │   ├── data/                    # Directory containing databases or other data files
+│   │   │   ├── cobrarrow_data.duckdb     # DuckDB database for COBRArrow data
+│   │   │   └── cobrarrow_users.duckdb         # DuckDB database for user credentials
+│   │   └── requirements.txt         # Python dependencies for the Flight RPC server
+│   ├── COBRArrowOptimization/         # Julia-based optimization server
+│   │   ├── Project.toml             # Julia dependencies for the optimization server
+│   │   ├── optimization_server.jl   # Main optimization server code in Julia   
+│   │   ├── CustomCOBRA.jl  
+│   │   ├── solve.jl   
+│   ├── README.md                        # Overall project documentation and setup instructions
+│   ├── COBRArrow Server Documentation.md
+│   ├── init_cobrarrow.sh           # Script to initialize the COBRArrow service
+│   ├── restart_cobrarrow.sh        # Script to restart the COBRArrow service
+│
+├── tests/                           # Unit and integration tests for client and server components
+    ├── client_tests/                # Tests for client-side APIs
+    │   ├── test_matlab_api.m        # MATLAB API test cases
+    │   ├── test_julia_api.jl        # Julia API test cases
+    └── server_tests/                # Tests for server-side components
+        ├── test_flight_server.py    # Test cases for the Flight RPC server
+        └── test_persist_service.py  # Test cases for the persist service
+
 ```
 
-## Integrate with your tools
 
-- [ ] [Set up project integrations](https://gitlab.com/recon4imd/cobra_arrow/-/settings/integrations)
 
-## Collaborate with your team
-
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
