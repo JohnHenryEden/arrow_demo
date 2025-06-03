@@ -1,7 +1,13 @@
 
 # COBRArrow Service
-The COBRArrow service aims to enhance interoperability and computational efficiency across various COBRA tools used for metabolic modeling. COBRArrow leverages Apache Arrow Flight RPC to enable seamless sharing of metabolic models between COBRA tools implemented in different programming languages. The service architecture is shown below:
-![alt text](<COBRArrow Architecture.png>)
+The COBRArrow service aims to enhance interoperability and computational efficiency across various COBRA tools used for metabolic modeling. COBRArrow leverages Apache Arrow Flight RPC to enable seamless sharing of metabolic models between COBRA tools implemented in different programming languages. 
+
+To deploy the service, follow the step-by-step instructions provided in the [Instructions for Using the COBRArrow Service](server/README.md), or run the setup using the provided [initialization script](server/init_cobrarrow.sh).
+
+The service architecture is shown below:
+![COBRArrow Architecture](<COBRArrow Architecture.png>)
+
+
 
 # Key Features
 1. Model Sharing:
@@ -55,14 +61,7 @@ The COBRArrow service aims to enhance interoperability and computational efficie
 │   ├── COBRArrow Server Documentation.md
 │   ├── init_cobrarrow.sh           # Script to initialize the COBRArrow service
 │   ├── restart_cobrarrow.sh        # Script to restart the COBRArrow service
-│
-├── tests/                           # Unit and integration tests for client and server components
-    ├── client_tests/                # Tests for client-side APIs
-    │   ├── test_matlab_api.m        # MATLAB API test cases
-    │   ├── test_julia_api.jl        # Julia API test cases
-    └── server_tests/                # Tests for server-side components
-        ├── test_flight_server.py    # Test cases for the Flight RPC server
-        └── test_persist_service.py  # Test cases for the persist service
+
 
 ```
 
