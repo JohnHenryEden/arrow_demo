@@ -56,7 +56,6 @@ class FlightServer(pyarrow.flight.FlightServerBase):
     def list_actions(self, context):
         return [
             ("drop_dataset", "Delete a dataset."),
-            ("do_solver", "Apply a dataset to a solver and get result."),
         ]
 
     def do_action(self, context, action):
