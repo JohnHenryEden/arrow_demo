@@ -8,7 +8,7 @@ Using virtual environment is recommended.
 
 Run `arrow_rpc_server.py` then `arrow_rpc_client.py`, the expected result is like this:
 
-```json
+```txt
             Item Value
 0   Total Weight  12.0
 1  Total Benefit  25.0
