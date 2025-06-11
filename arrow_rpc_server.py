@@ -14,20 +14,18 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         super(FlightServer, self).__init__(location, **kwargs)
         self._location = location
         self._repo = repo
+        self._tables = {}
 
     def _make_flight_info(self, dataset):
-        dataset_path = self._repo / dataset
-        schema = pa.parquet.read_schema(dataset_path)
-        metadata = pa.parquet.read_metadata(dataset_path)
+        table = self._tables[dataset]
+        schema = table.schema
         descriptor = pa.flight.FlightDescriptor.for_path(
             dataset.encode('utf-8')
         )
         endpoints = [pa.flight.FlightEndpoint(dataset, [self._location])]
         return pyarrow.flight.FlightInfo(schema,
                                         descriptor,
-                                        endpoints,
-                                        metadata.num_rows,
-                                        metadata.serialized_size)
+                                        endpoints,-1,-1)
 
     def list_flights(self, context, criteria):
         for dataset in self._repo.iterdir():
@@ -38,9 +36,8 @@ class FlightServer(pyarrow.flight.FlightServerBase):
 
     def do_put(self, context, descriptor, reader, writer):
         dataset = descriptor.path[0].decode('utf-8')
-        dataset_path = self._repo / dataset
         data_table = reader.read_all()
-        pa.parquet.write_table(data_table, dataset_path)
+        self._tables[dataset] = data_table
 
     def do_get(self, context, ticket):
         ticket_str:str = ticket.ticket.decode()
@@ -50,8 +47,7 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         # default endpoint
         else:
             dataset = ticket.ticket.decode('utf-8')
-            dataset_path = self._repo / dataset
-            return pa.flight.RecordBatchStream(pa.parquet.read_table(dataset_path))
+            return pa.flight.RecordBatchStream(self._tables[dataset])
 
     def list_actions(self, context):
         return [
@@ -67,16 +63,14 @@ class FlightServer(pyarrow.flight.FlightServerBase):
             raise NotImplementedError
 
     def do_drop_dataset(self, dataset):
-        dataset_path = self._repo / dataset
-        dataset_path.unlink()
+        self._tables[dataset] = None
     # Execute a solver
     def do_solver(self, param:str):
         params = param.split(',')
         dataset = params[1]
         solver_name = params[2]
-        # get data from parquet
-        dataset_path = self._repo / dataset
-        input_params = pa.parquet.read_table(dataset_path)
+        # get data from memory
+        input_params = self._tables[dataset]
         # get solver
         solver = solver_factory.get_solver(solver_name)
         # run solver and get result in form of pa table
