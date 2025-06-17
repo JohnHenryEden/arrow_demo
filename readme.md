@@ -1,5 +1,7 @@
 # Apache Flight gRPC Server / FastAPI server gateway
 
+A framework for Apache Flight gRPC Server / FastAPI server gateway
+
 Used for the Cobra Arrow Project, related to [OpenCobra toolbox project](https://github.com/opencobra/cobratoolbox)
 
 ## To create virtual environment
