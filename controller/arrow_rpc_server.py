@@ -2,7 +2,7 @@ import pathlib
 import pyarrow as pa
 import pyarrow.flight
 import pyarrow.parquet
-from solvers.solver_factory import SolverFactory
+from service.optimization_service.solver_factory import SolverFactory
 import logging
 import sys
 import time

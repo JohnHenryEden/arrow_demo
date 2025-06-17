@@ -1,6 +1,6 @@
 import json
 from pyomo.environ import *
-from solvers.ampl_expression.ampl_interpreter import build_model_structure, attach_constraints_and_objective
+from service.optimization_service.ampl_expression.ampl_interpreter import build_model_structure, attach_constraints_and_objective
 
 def run():
     

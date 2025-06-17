@@ -1,4 +1,4 @@
-from solvers.solver import BaseSolver
+from service.optimization_service.solver import BaseSolver
 import pyarrow as pa
 import pyarrow.cffi
 import cffi

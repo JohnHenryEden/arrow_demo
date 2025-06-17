@@ -1,5 +1,5 @@
 import uvicorn, multiprocessing
-from arrow_rpc_server import grpc_serve_addr
+from controller.arrow_rpc_server import grpc_serve_addr
 import logging
 import sys
 
@@ -22,7 +22,7 @@ def setup_custom_logger(name):
 def run_server():
     logger = setup_custom_logger(f"worker_fastAPI")
     logger.info("Starting worker on FastAPI")
-    uvicorn.run("fastapi_restful:app",
+    uvicorn.run("controller.fastapi_restful:app",
                 host=ipaddr,
                 port=port,
                 reload=False,
@@ -33,12 +33,14 @@ def run_grpc_server():
     logger.info("Starting worker on gRPC server")
     grpc_serve_addr(ipaddr, grpc_port, logger)
     
+# Start all server instances
 def start_all() -> None:
     server_thread = multiprocessing.Process(target=run_server, daemon=True)
     grpc_thread = multiprocessing.Process(target=run_grpc_server, daemon=True)
-    server_thread.start()
+    # Fon now, only gRPC server, expand on FastAPI if needed
+    # server_thread.start()
     grpc_thread.start()
-    server_thread.join()
+    # server_thread.join()
     grpc_thread.join()
 
 # Run script to start everything
