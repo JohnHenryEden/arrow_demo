@@ -1,6 +1,7 @@
 import pyarrow as pa
 import pyarrow.flight
 
+# only used for testing
 client = pa.flight.connect("grpc://127.0.0.1:8815")
 # Upload a new dataset
 data_table = pa.table(
