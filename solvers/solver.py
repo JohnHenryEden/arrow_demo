@@ -8,3 +8,6 @@ class BaseSolver:
 
     def run(self, params:pa.Table) -> pa.Table:
         pass
+    # Generalized, use a dict (from a json)
+    def run(self, params:dict) -> dict:
+        pass

@@ -8,10 +8,11 @@ data_table = pa.table(
     names=["A", "b", "w", "W_max"]
 )
 
-upload_descriptor = pa.flight.FlightDescriptor.for_path("uploaded.parquet")
+upload_descriptor = pa.flight.FlightDescriptor.for_path("python_glpk_param")
 writer, _ = client.do_put(upload_descriptor, data_table.schema)
 writer.write_table(data_table)
 writer.close()
+
 
 # Retrieve metadata of newly uploaded dataset
 flight = client.get_flight_info(upload_descriptor)
@@ -23,8 +24,8 @@ read_table = reader.read_all()
 
 # Drop the newly uploaded dataset
 
-result_reader = client.do_get(pa.flight.Ticket(b"do_solver,uploaded.parquet,pyomo.glpk_solver_example"))
-client.do_action(pa.flight.Action("drop_dataset", "uploaded.parquet".encode('utf-8')))
+result_reader = client.do_get(pa.flight.Ticket(b"do_solver,python_glpk_param,pyomo.glpk_solver_example"))
+client.do_action(pa.flight.Action("drop_dataset", "python_glpk_param".encode('utf-8')))
 
 print(result_reader.read_all().to_pandas())
 # List existing datasets.

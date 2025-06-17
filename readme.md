@@ -1,19 +1,22 @@
-# Calling Pyomo solvers via Apache arrow flight demo
+# Apache Flight gRPC Server / FastAPI server gateway
 
-Demonstration of calling a simple `glpk` solver running in `pyomo`
+Used for the Cobra Arrow Project, related to [OpenCobra toolbox project](https://github.com/opencobra/cobratoolbox)
 
-Dependency listed in `requirements.txt`, install using `pip install -r requirements.txt`
+## To create virtual environment
 
-Using virtual environment is recommended.
+```bash
+python -m venv .venv
+.venv/Scripts/activate
+```
 
-Run `arrow_rpc_server.py` then `arrow_rpc_client.py`, the expected result is like this:
+## To install dependency
 
-```txt
-            Item Value
-0   Total Weight  12.0
-1  Total Benefit  25.0
-2         hammer   Yes
-3         wrench    No
-4    screwdriver   Yes
-5          towel   Yes
+```bash
+pip install -r requirements.txt
+```
+
+## To start all server instances
+
+```bash
+python run_server.py
 ```

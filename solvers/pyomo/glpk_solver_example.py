@@ -1,13 +1,3 @@
-#  ___________________________________________________________________________
-#
-#  Pyomo: Python Optimization Modeling Objects
-#  Copyright (c) 2023-2025
-#  National Technology and Engineering Solutions of Sandia, LLC
-#  Under the terms of Contract DE-NA0003525 with National Technology and
-#  Engineering Solutions of Sandia, LLC, the U.S. Government retains certain
-#  rights in this software.
-#  This software is distributed under the 3-clause BSD License.
-#  ___________________________________________________________________________
 import pyomo.environ as pyo
 import pyarrow as pa
 from solvers.solver import BaseSolver
@@ -21,6 +11,14 @@ class GlpkSolverSample(BaseSolver):
         self.w = {'hammer':5, 'wrench':7, 'screwdriver':4, 'towel':3}
         self.W_max = 14
     
+    # Run the solver from dict
+    def run(self, params:dict) -> dict:
+        A = params["A"]
+        b = params["b"]
+        w = params["w"]
+        W_max = params["W_max"]
+    
+        return self.glpk_example(A, b, w, W_max)
     
     # Run the solver
     def run(self, params:pa.Table) -> pa.Table:
@@ -29,6 +27,16 @@ class GlpkSolverSample(BaseSolver):
         b = params_content["b"]
         w = params_content["w"]
         W_max = params_content["W_max"][0]
+        
+        exec_result = self.glpk_example(A, b, w, W_max)        
+        result = pa.table(
+            [exec_result.get("output_keys"), exec_result.get("output_values")],
+            names=["Item", "Value"]
+        )
+        
+        return result
+    
+    def glpk_example(self, A, b, w, W_max) -> dict:
         if A is None or b is None or w is None or W_max is None:
             raise ValueError("Parameter value missing!")
         model = pyo.ConcreteModel()
@@ -59,10 +67,7 @@ class GlpkSolverSample(BaseSolver):
                 acquired = 'Yes'
             output_keys.append(A[i])
             output_values.append(acquired)
-                
-        result = pa.table(
-            [output_keys, output_values],
-            names=["Item", "Value"]
-        )
-        
-        return result
+        return {
+            "output_keys": output_keys,
+            "output_values": output_values,
+        }

@@ -1,11 +1,13 @@
 import pathlib
-
 import pyarrow as pa
 import pyarrow.flight
 import pyarrow.parquet
 from solvers.solver_factory import SolverFactory
-
+import logging
+import sys
+import time
 solver_factory = SolverFactory()
+logger = logging.getLogger(__name__)
 
 class FlightServer(pyarrow.flight.FlightServerBase):
 
@@ -15,6 +17,9 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         self._location = location
         self._repo = repo
         self._tables = {}
+        
+    def set_location(self, location:str) -> None:
+        self._location = location
 
     def _make_flight_info(self, dataset):
         table = self._tables[dataset]
@@ -76,11 +81,35 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         # run solver and get result in form of pa table
         result = solver.run(input_params)
         # print results
-        print(result.to_pandas())
+        logger.info(result.to_pandas())
         return pa.flight.RecordBatchStream(result)
 
-if __name__ == '__main__':
+def grpc_serve_addr(ipaddr:str, port:int, ext_logger) -> None:
+    server = FlightServer()
+    logger = ext_logger
+    if ipaddr is not None and port is not None:
+        server.set_location(f"grpc://{ipaddr}:{port}")
+    server._repo.mkdir(exist_ok=True)
+    logger.info("Server running at " + server._location)
+    time.sleep(5)
+    server.serve()
+# Use when run standalone
+def grpc_serve() -> None:
     server = FlightServer()
     server._repo.mkdir(exist_ok=True)
-    print("Server running at", server._location)
+    logger.info("Server running at " + server._location)
     server.serve()
+
+if __name__ == '__main__':
+    # logging conf
+    ch = logging.StreamHandler(stream=sys.stdout)
+    ch.setLevel(logging.INFO)
+    # create formatter
+    formatter = logging.Formatter('%(levelname)s: %(message)s')
+    # add formatter to ch
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    logger.setLevel(logging.INFO)
+    logger.info("Starting gRPC server...")
+    # start the gRPC server
+    grpc_serve()
