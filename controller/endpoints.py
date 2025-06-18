@@ -1,7 +1,7 @@
 import json
 from objects.util.response import Response
 from typing import List, Dict, Optional, Union
-
+from controller.mat_parser import load_model_from_mat
 """
 Endpoints of all the exposed APIs, in logical layer
 gRPC and potentially HTTP services all calls these to reduce duplication of efforts
@@ -63,3 +63,16 @@ class Endpoint:
         :return: Dict with result metadata and output
         """
         pass
+    
+    def parse_model(self, payload) -> Dict:
+        """
+        Parse a model from a file-like object.
+
+        :param payload: Dict with fields:
+            - modelId
+            - modelName
+            - model (file-like object)
+        :return: Dict with parsed model metadata
+        """
+        return load_model_from_mat(payload)
+        # pass

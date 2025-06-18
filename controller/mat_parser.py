@@ -1,6 +1,9 @@
 from scipy.io import loadmat
-
-
+from io import BytesIO
+from scipy import sparse
+import numpy as np
+from controller.engine_model import EngineModel
+import pyarrow as pa
 
 # file = request.files["matfile"]通过表单字段名获取上传的文件,然后file_bytes = file.read()读取为二进制内容（bytes）
 # 再调用这个方法build一个EngineModel
@@ -19,6 +22,7 @@ def load_model_from_mat(file_bytes: bytes) -> 'EngineModel':
     lb = np.array(_cell_to_float_list(model_data['lb'][0, 0]))
     ub = np.array(_cell_to_float_list(model_data['ub'][0, 0]))
     c = np.array(_cell_to_float_list(model_data['c'][0, 0]))
+    b = np.array(_cell_to_float_list(model_data['b'][0, 0]))
     rxns = _cell_to_str_list(model_data['rxns'][0, 0])
     mets = _cell_to_str_list(model_data['mets'][0, 0])
     csense = _cell_to_str_list(model_data['csense'][0, 0]) if 'csense' in model_data.dtype.names else None
@@ -32,10 +36,31 @@ def load_model_from_mat(file_bytes: bytes) -> 'EngineModel':
         val = float(model_data["osense"][0, 0][0][0])
         osense = "min" if val == 1 else "max"
     else:
-        sense = "max"  # 默认方向
+        osense = "max"  # 默认方向
         
+    # convert to pyarrow RecordBatch
+    S_coo = S.tocoo()  # 转换为 COO 格式
+    S = pa.RecordBatch.from_arrays(
+        [
+            pa.array(S_coo.row.astype(np.int32)),  # 行索引
+            pa.array(S_coo.col.astype(np.int32)),  # 列索引
+            pa.array(S_coo.data.astype(np.float64))                    # 数据值
+        ],
+        schema=pa.schema([
+            ('row', pa.int32()),
+            ('col', pa.int32()),
+            ('data', pa.float64())
+        ])
+    )
+    b = pa.array(b, type=pa.float64())
+    c = pa.array(c, type=pa.float64())
+    lb = pa.array(lb, type=pa.float64())
+    ub = pa.array(ub, type=pa.float64())
+    csense = pa.array(csense, type=pa.string()) if csense is not None else None
+    osense = pa.scalar(osense, type=pa.string())
+    
     # 创建模型对象
-    return Model(model_name, S, b, c, lb, ub, osense, csense)
+    return EngineModel(model_name, S, b, c, lb, ub, osense, csense)
 
 
 

@@ -5,6 +5,7 @@ import io
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import StreamingResponse
 from controller.endpoints import *
+from controller.engine_model import EngineModel
 
 app = FastAPI()
 endpoint = Endpoint()
@@ -41,6 +42,10 @@ async def save(model_id: Annotated[str, None] = None,
             model_name: str = "Model", 
             model: Annotated[UploadFile, File(), None] = None):
     contents = await model.read()
+    
+    mat_model = endpoint.parse_model(contents)
+    aa = mat_model.to_ipc_bytes()
+    print(f"Parsed model: {aa}")
     # handle model saving logic
     endpoint.save_model(payload={
         "model_id": model_id,
