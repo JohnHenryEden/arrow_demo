@@ -39,7 +39,8 @@ class Server():
         uvicorn.run("controller.fastapi_restful:app",
                     host=self.ipaddr_http,
                     port=self.port,
-                    reload=False,
+                    # Auto reload, dev mode
+                    reload=True, 
                     log_level="info",
                     access_log=True)
     def run_grpc_server(self):
@@ -49,8 +50,8 @@ class Server():
         
     # Start all server instances
     def start_all(self) -> None:
-        server_thread = multiprocessing.Process(target=self.run_server, daemon=True)
-        grpc_thread = multiprocessing.Process(target=self.run_grpc_server, daemon=True)
+        server_thread = multiprocessing.Process(target=self.run_server, daemon=False)
+        grpc_thread = multiprocessing.Process(target=self.run_grpc_server, daemon=False)
         # Fon now, only FastAPI server, expand on gRPC if needed
         server_thread.start()
         # grpc_thread.start()
