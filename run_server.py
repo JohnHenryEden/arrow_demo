@@ -51,11 +51,11 @@ class Server():
     def start_all(self) -> None:
         server_thread = multiprocessing.Process(target=self.run_server, daemon=True)
         grpc_thread = multiprocessing.Process(target=self.run_grpc_server, daemon=True)
-        # Fon now, only gRPC server, expand on FastAPI if needed
-        # server_thread.start()
-        grpc_thread.start()
-        # server_thread.join()
-        grpc_thread.join()
+        # Fon now, only FastAPI server, expand on gRPC if needed
+        server_thread.start()
+        # grpc_thread.start()
+        server_thread.join()
+        # grpc_thread.join()
 
 # Run script to start everything
 if __name__ == "__main__":
