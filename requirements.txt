@@ -1,7 +1,7 @@
-ampl-module-base==20250611
-ampl-module-cbc==20250429
-ampl-module-gurobi==20250429
-ampl-module-highs==20250429
+# ampl-module-base==20250611
+# ampl-module-cbc==20250429
+# ampl-module-gurobi==20250429
+# ampl-module-highs==20250429
 amplpy==0.14.0
 ampltools==0.7.5
 annotated-types==0.7.0
