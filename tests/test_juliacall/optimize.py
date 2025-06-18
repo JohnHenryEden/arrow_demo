@@ -8,7 +8,7 @@ import argparse
 jl.include("solve_julia.jl")
 
 
-file_path = 'e_coli_core_model.mat'
+file_path = 'D:\\Work\\Arrow-Demo\\tests\\test_juliacall\\e_coli_core.mat'
     
     
 m = load_model_from_mat(file_path)

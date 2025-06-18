@@ -17,6 +17,7 @@ function solve_cobra_fba(S_row_b::Vector{UInt8}, S_col_b::Vector{UInt8}, S_data_
     nrow::Int, ncol::Int,
     lb_b::Vector{UInt8}, ub_b::Vector{UInt8}, c_b::Vector{UInt8})
     # 解码 IPC 字节为表格
+    println("Before decoding arrow")
     S_row = collect(Arrow.Table(IOBuffer(S_row_b)).row)
     S_col = collect(Arrow.Table(IOBuffer(S_col_b)).col)
     S_data = collect(Arrow.Table(IOBuffer(S_data_b)).data)
@@ -32,11 +33,15 @@ function solve_cobra_fba(S_row_b::Vector{UInt8}, S_col_b::Vector{UInt8}, S_data_
     # println("lb: ", lb)
     # println("ub: ", ub)
     # println("c: ", c)
-
+    
     model = Model(HiGHS.Optimizer)
+    println("Before variable setting")
     @variable(model, lb[i] <= v[i=1:ncol] <= ub[i])
+    println("Before objective setting")
     @objective(model, Max, sum(c[i] * v[i] for i in 1:ncol))
-    @constraint(model, S * v .== 0)
+    println("Before constraint setting")
+    JuMP.add_constraint(model, S * v .== 0)
+    println("Before optimize call")
     optimize!(model)
 
     return value.(v)
@@ -94,6 +99,7 @@ end
 # @objective(model, Max, sum(c[i] * v[i] for i in 1:ncol))
 # @constraint(model, S * v .== 0)
 # optimize!(model)
+
 # # print the result
 # println("result: ", value.(v))
 
