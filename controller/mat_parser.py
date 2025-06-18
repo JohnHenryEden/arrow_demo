@@ -1,10 +1,19 @@
-def load_model_from_mat(file_path: str):
-    data = loadmat(file_path)
+from scipy.io import loadmat
+
+
+
+# file = request.files["matfile"]通过表单字段名获取上传的文件,然后file_bytes = file.read()读取为二进制内容（bytes）
+# 再调用这个方法build一个EngineModel
+def load_model_from_mat(file_bytes: bytes) -> 'EngineModel':
+    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.loadmat.html
+    data = loadmat(BytesIO(file_bytes))        # 使用 BytesIO 构造 file-like 对象并反序列化 .mat
+
     # 提取model名称，除了'__header__', '__version__', '__globals__'之外的就是模型名称
     model_names = [key for key in data.keys() if not key.startswith('__')]
     model_name = model_names[0]
     model_data = data[model_name]
     print(f"Model data keys: {model_data.dtype.names}")
+    
     # 提取模型数据
     S =  sparse.csc_matrix(model_data['S'][0, 0])
     lb = np.array(_cell_to_float_list(model_data['lb'][0, 0]))
@@ -17,16 +26,16 @@ def load_model_from_mat(file_path: str):
     # osense 可能是字符串 "max"/"min" 或数值 1/-1
     if "osenseStr" in model_data.dtype.names:
         val = model_data["osenseStr"][0, 0][0]
-        sense = str(val) if isinstance(val, str) else str(val[0])
+        osense = str(val) if isinstance(val, str) else str(val[0])
     elif "osense" in model_data.dtype.names:
         print(f"osense: {model_data['osense']}")
         val = float(model_data["osense"][0, 0][0][0])
-        sense = "min" if val == 1 else "max"
+        osense = "min" if val == 1 else "max"
     else:
         sense = "max"  # 默认方向
         
     # 创建模型对象
-    return Model(model_name, S, lb, ub, c, rxns, mets, sense, csense)
+    return Model(model_name, S, b, c, lb, ub, osense, csense)
 
 
 
@@ -44,3 +53,5 @@ def _cell_to_float_list(arr):
             print(f"Warning: cannot convert {x} to float: {e}")
             result.append(0.0)  
     return result
+
+
