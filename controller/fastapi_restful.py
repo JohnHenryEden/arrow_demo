@@ -4,7 +4,6 @@ import pyarrow.ipc as ipc
 import io
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import StreamingResponse
-from objects.wrappers.mat_file import MatFile
 from controller.endpoints import *
 
 app = FastAPI()
