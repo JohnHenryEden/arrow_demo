@@ -32,20 +32,22 @@ class Server():
         if not self.logger.hasHandlers():
             self.logger.addHandler(handler)
         return self.logger
+    
+    
+    def run_grpc_server(self):
+        logger = self.setup_custom_logger(f"worker_grpc")
+        logger.info("Starting worker on gRPC server")
+        grpc_serve_addr(self.ipaddr_rpc, self.grpc_port, logger)
+        
+    # TODO Add other service starting points here
+    def start_engine_services(self) -> None:
+        grpc_thread = multiprocessing.Process(target=self.run_grpc_server, daemon=True)
+        # Fon now, only FastAPI server, expand on gRPC if needed
+        grpc_thread.start()
+        grpc_thread.join()
 
-    def run_server(self):
-        self.logger = self.setup_custom_logger(f"worker_fastAPI")
-        self.logger.info("Starting worker on FastAPI")
-        uvicorn.run("controller.fastapi_restful:app",
-                    host=self.ipaddr_http,
-                    port=self.port,
-                    # Auto reload, dev mode
-                    reload=True, 
-                    log_level="info",
-                    access_log=True)
-
-# Run script to start http gateway server
+# Run script to start engine service
 if __name__ == "__main__":
     server = Server()
     server.config_loader()
-    server.run_server()
+    server.start_engine_services()
