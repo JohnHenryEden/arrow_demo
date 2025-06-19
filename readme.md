@@ -4,6 +4,8 @@ A framework for Apache Flight gRPC Server / FastAPI server gateway
 
 Used for the Cobra Arrow Project, related to [OpenCobra toolbox project](https://github.com/opencobra/cobratoolbox)
 
+Python >= 3.10 Recommended
+
 ## To create virtual environment
 
 ```bash
