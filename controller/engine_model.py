@@ -1,23 +1,37 @@
-from typing import Union
-import numpy as np
 import pyarrow as pa
 from pyarrow import ipc
+import pyarrow.compute as pc
 import io
+from typing import Union
 
+class EngineModel:
+    def __init__(
+        self,
+        model_name: str,
+        S: pa.RecordBatch,
+        b: pa.Array,
+        c: pa.Array,
+        lb: pa.Array,
+        ub: pa.Array,
+        osense: pa.Scalar,
+        csense: pa.Array
+    ):
+        if not isinstance(S, pa.RecordBatch):
+            raise TypeError("S must be a pyarrow RecordBatch")
 
-class Model:
-    def __init__(self, model_name, S, lb, ub, c, rxns, mets, osense, csense):
+        for name in ["row", "col", "data"]:
+            if name not in S.schema.names:
+                raise ValueError(f"S must contain column '{name}'")
+
         self.model_name = model_name
-        self.S = S  # Stoichiometric matrix
-        self.lb = lb  # Lower bounds
-        self.ub = ub  # Upper bounds
-        self.c = c  # Objective coefficients
-        self.rxns = rxns  # Reactions
-        self.mets = mets  # Metabolites
-        self.osense = osense  # Optimization sense ('max' or 'min')
-        self.csense = csense  # Constraint sense
-    
-    
+        self.S = S
+        self.b = b
+        self.c = c
+        self.lb = lb
+        self.ub = ub
+        self.osense = osense
+        self.csense = csense
+
     @staticmethod
     def _bytes_helper(obj: Union[pa.Array, pa.RecordBatch, pa.Table]) -> bytes:
         # https://arrow.apache.org/docs/python/generated/pyarrow.ipc.new_stream.html#pyarrow.ipc.new_stream
@@ -39,7 +53,7 @@ class Model:
 
         return sink.getvalue()
 
-    
+
     def to_ipc_bytes(self):
         """
         Convert the model to Arrow IPC binary blocks for transmission.
@@ -55,9 +69,10 @@ class Model:
 
         # Estimate matrix dimensions from max index values in row/col
         # (since sparse matrix indices are 0-based, dimensions = max index + 1)
-        nrow = int(pa.compute.max(row).as_py()) + 1
-        ncol = int(pa.compute.max(col).as_py()) + 1
+        nrow = int(pc.max(row).as_py()) + 1
+        ncol = int(pc.max(col).as_py()) + 1
 
+        # 封装为一个 RecordBatch
         S_batch = pa.record_batch({
             "row": row,
             "col": col,
@@ -69,6 +84,7 @@ class Model:
             "ncol": pa.array([ncol], type=pa.int64())
         })
 
+        # 各字段转换为 Arrow IPC 二进制
         return {
             "S": self._bytes_helper(S_batch),
             "lb": self._bytes_helper(self.lb),
@@ -76,3 +92,6 @@ class Model:
             "c":  self._bytes_helper(self.c),
             "S_shape": self._bytes_helper(S_shape_batch)
         }
+        
+        
+    
