@@ -16,7 +16,7 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         super(FlightServer, self).__init__(location, **kwargs)
         self._location = location
         self._repo = repo
-        self._tables = {}
+        self._tables:dict = {}
         
     def set_location(self, location:str) -> None:
         self._location = location
@@ -40,9 +40,18 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         return self._make_flight_info(descriptor.path[0].decode('utf-8'))
 
     def do_put(self, context, descriptor, reader, writer):
-        dataset = descriptor.path[0].decode('utf-8')
+        dataset:str = descriptor.path[0].decode('utf-8')
         data_table = reader.read_all()
-        self._tables[dataset] = data_table
+        problem = ""
+        key = ""
+        if dataset.find(":") > 0:
+            problem = dataset.split(":")[0]
+            key = dataset.split(":")[1]
+        try:
+            self._tables[problem][key] = data_table
+        except KeyError:
+            self._tables[problem] = {}
+            self._tables[problem][key] = data_table
 
     def do_get(self, context, ticket):
         ticket_str:str = ticket.ticket.decode()
@@ -67,21 +76,22 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         else:
             raise NotImplementedError
 
+    # Drop all dataset related to a task
     def do_drop_dataset(self, dataset):
-        self._tables[dataset] = None
+        self._tables[dataset] = {}
     # Execute a solver
     def do_solver(self, param:str):
         params = param.split(',')
         dataset = params[1]
         solver_name = params[2]
         # get data from memory
-        input_params = self._tables[dataset]
+        input_params = self._tables.get(dataset)
         # get solver
         solver = solver_factory.get_solver(solver_name)
         # run solver and get result in form of pa table
         result = solver.run(input_params)
         # print results
-        logger.info(result.to_pandas())
+        logger.info(result)
         return pa.flight.RecordBatchStream(result)
 
 def grpc_serve_addr(ipaddr:str, port:int, ext_logger) -> None:

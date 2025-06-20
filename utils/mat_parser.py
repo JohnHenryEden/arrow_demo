@@ -2,7 +2,7 @@ from scipy.io import loadmat
 from io import BytesIO
 from scipy import sparse
 import numpy as np
-from controller.engine_model import EngineModel
+from objects.engine_model import EngineModel
 import pyarrow as pa
 
 # file = request.files["matfile"]通过表单字段名获取上传的文件,然后file_bytes = file.read()读取为二进制内容（bytes）

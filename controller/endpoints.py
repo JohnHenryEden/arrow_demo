@@ -1,12 +1,18 @@
 import json
 from objects.util.response import Response
 from typing import List, Dict, Optional, Union
-from controller.mat_parser import load_model_from_mat
+from utils.mat_parser import load_model_from_mat
+from objects.engine_model import EngineModel
+import service
+from service.service_factory import ServiceFactory
 """
 Endpoints of all the exposed APIs, in logical layer
 gRPC and potentially HTTP services all calls these to reduce duplication of efforts
 """
 class Endpoint:
+    def __init__(self):
+        self.service_factory = ServiceFactory()
+        pass
     def get_model_list(self, page: int = 0, result_per_page: int = 10) -> List[Dict]:
         """
         Retrieve a paginated list of saved models.
@@ -53,7 +59,10 @@ class Endpoint:
             - dataName (optional)
         :return: Dict with result metadata and output
         """
-        pass
+        if payload['model'] is not None:
+            service = self.service_factory.create_service(payload["engine"])
+            result = service.compute(payload['model'])
+        return result
 
     def compute_cobra(self, payload: Dict) -> Dict:
         """
@@ -74,5 +83,5 @@ class Endpoint:
             - model (file-like object)
         :return: Dict with parsed model metadata
         """
-        return load_model_from_mat(payload)
+        return {"engine_model": load_model_from_mat(payload)}
         # pass

@@ -39,11 +39,10 @@ class EngineModel:
 
         if isinstance(obj, pa.Array):
             # new_stream() requires a schema, and pa.Array alone does not have a schema — only RecordBatch or Table do.
-            batch = pa.record_batch({"field": obj})
+            batch = pa.RecordBatch.from_pydict({"field": obj})
         elif isinstance(obj, pa.RecordBatch):
             batch = obj
         elif isinstance(obj, pa.Table):
-            # TODO: Handle Table serialization
             batch = obj.to_batches()[0] # stub: assuming single batch for simplicity
         else:
             raise TypeError("Unsupported type for Arrow serialization")
@@ -63,6 +62,25 @@ class EngineModel:
                 - "lb", "ub", "c": Arrow tables (1D)
                 - "nrow", "ncol": inferred matrix shape
         """
+        data_dict = self.to_pydict()
+
+        # 各字段转换为 Arrow IPC 二进制
+        return {
+            "S": self._bytes_helper(data_dict["S"]),
+            "lb": self._bytes_helper(data_dict["lb"]),
+            "ub": self._bytes_helper(data_dict["ub"]),
+            "c":  self._bytes_helper(data_dict["c"]),
+            "S_shape": self._bytes_helper(data_dict["S_shape"])
+        }
+        
+        
+
+    def to_pydict(self):
+        """
+        Convert the model to dict for transmission via flight.
+        Returns:
+            - A dictionary of Arrow tables and record batches
+        """
         row = self.S["row"]
         col = self.S["col"]
         data = self.S["data"]
@@ -73,24 +91,27 @@ class EngineModel:
         ncol = int(pc.max(col).as_py()) + 1
 
         # 封装为一个 RecordBatch
-        S_batch = pa.record_batch({
+        S_batch = pa.RecordBatch.from_pydict({
             "row": row,
             "col": col,
             "data": data
         })
         
-        S_shape_batch = pa.record_batch({
+        S_shape_batch = pa.RecordBatch.from_pydict({
             "nrow": pa.array([nrow], type=pa.int64()),
             "ncol": pa.array([ncol], type=pa.int64())
         })
 
-        # 各字段转换为 Arrow IPC 二进制
+        # Return dict data for parameters
         return {
-            "S": self._bytes_helper(S_batch),
-            "lb": self._bytes_helper(self.lb),
-            "ub": self._bytes_helper(self.ub),
-            "c":  self._bytes_helper(self.c),
-            "S_shape": self._bytes_helper(S_shape_batch)
+            "S": S_batch,
+            "lb": self.lb,
+            "ub": self.ub,
+            "c":  self.c,
+            "b":  self.b,
+            "osense": self.osense,
+            "csense": self.csense,
+            "S_shape": S_shape_batch
         }
         
         

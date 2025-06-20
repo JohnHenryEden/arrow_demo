@@ -19,19 +19,15 @@ from service.optimization_service.solver import BaseSolver
 
 class CobraLP(BaseSolver):
     def __init__(self):
-        self.S
-        self.b
-        self.c
-        self.lb
-        self.ub
-        self.osense
-        self.csense
-        self.rxns
-        self.mets
-        
+        self.model = {}
         super().__init__()
         
-    def run(self, params:pa.Table) -> pa.Table:
-        pass
-    
-    
+        
+    def run(self, params:dict) -> dict:
+        # Convert the data into an model acceptable format
+        for k, v in params.items():
+            self.model[k] = v.to_pydict()
+        # Send the data to model
+        # Get results
+        print(self.model)
+        return params 
