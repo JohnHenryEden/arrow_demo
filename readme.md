@@ -1,26 +1,69 @@
-# Apache Flight gRPC Server / FastAPI server gateway
 
-A framework for Apache Flight gRPC Server / FastAPI server gateway
+# COBRArrow Service
+The COBRArrow service aims to enhance interoperability and computational efficiency across various COBRA tools used for metabolic modeling. COBRArrow leverages Apache Arrow Flight RPC to enable seamless sharing of metabolic models between COBRA tools implemented in different programming languages. 
 
-Used for the Cobra Arrow Project, related to [OpenCobra toolbox project](https://github.com/opencobra/cobratoolbox)
+To deploy the service, follow the step-by-step instructions provided in the [Instructions for Using the COBRArrow Service](server/README.md), or run the setup using the provided [initialization script](server/init_cobrarrow.sh).
 
-Python >= 3.10 Recommended
+The service architecture is shown below:
+![COBRArrow Architecture](<COBRArrow Architecture.png>)
 
-## To create virtual environment
 
-```bash
-python -m venv .venv
-.venv/Scripts/activate
+
+# Key Features
+1. Model Sharing:
+   - Models are sent to the RPC server as Apache Arrow tables, where they are stored in the server's memory space. 
+   - To ensure data persistence and prevent loss, models can also be persisted to DuckDB, which is in file format (.duckdb file) on the same server.
+   - Models can be fetched by COBRA tools either directly from memory or from DuckDB.
+
+2. Remote Computation:
+   - COBRArrow integrates with COBRA.jl to leverage Julia's computational efficiency. 
+   - The computation server communicates with the RPC server via socket communication, with data transmitted in Arrow format. 
+   - The computation socket server and RPC server can be deployed on separate servers, offering the flexibility to utilize high-performance computing resources, such as supercomputers.
+   - The computation service supports change of different solvers and parameters.
+
+3. Data Handling and Compatibility:
+   - To maintain compatibility with existing COBRA tools, data fetched from the RPC server is converted back to the format native to each tool. For example, in MATLAB, Arrow tables are converted to the original format as found in `.mat` files.
+   - This ensures that users can seamlessly integrate COBRArrow into their existing workflows without compatibility issues. Currently, only MATLAB API is developed to use COBRArrow service.
+
+
+# Directory Structure
+
 ```
 
-## To install dependency
+├── client/                          # Client-side APIs for MATLAB and Julia
+│   ├── MATLAB_API/                  # MATLAB API code and documentation
+│   │   ├── COBRArrow.m              # Main MATLAB API class for COBRArrow
+│   │   └── COBRArrowSolver.m        # Solver-related functionalities for MATLAB API
+│   │   └── requirements.txt         # Python dependencies in order to use Flight RPC.
+│   │   └── README.md                # Documentation for MATLAB API
+│   ├── Julia_API/                   # Julia API code and documentation
+│   │   ├── COBRArrow.jl             # Main Julia API class for COBRArrow
+│   │   └── README.md                # Documentation for Julia API
+│
+├── server/                          # Server-side components, including Flight RPC and optimization servers
+│   ├── cobrarrow_rpc/           # Python-based Flight RPC server
+│   │   ├── __init__.py              # Initializes the flight_rpc_server package
+│   │   ├── config.py                # Configuration settings for the Flight RPC server
+│   │   ├── flight_server.py         # Main Flight RPC server implementation
+│   │   ├── auth_middleware.py       # Middleware for handling authentication in Flight RPC
+│   │   ├── persist_service.py       # Service for persisting data
+│   │   ├── optimization_client.py   # Client for interacting with the optimization server
+│   │   ├── data/                    # Directory containing databases or other data files
+│   │   │   ├── cobrarrow_data.duckdb     # DuckDB database for COBRArrow data
+│   │   │   └── cobrarrow_users.duckdb         # DuckDB database for user credentials
+│   │   └── requirements.txt         # Python dependencies for the Flight RPC server
+│   ├── COBRArrowOptimization/         # Julia-based optimization server
+│   │   ├── Project.toml             # Julia dependencies for the optimization server
+│   │   ├── optimization_server.jl   # Main optimization server code in Julia   
+│   │   ├── CustomCOBRA.jl  
+│   │   ├── solve.jl   
+│   ├── README.md                        # Overall project documentation and setup instructions
+│   ├── COBRArrow Server Documentation.md
+│   ├── init_cobrarrow.sh           # Script to initialize the COBRArrow service
+│   ├── restart_cobrarrow.sh        # Script to restart the COBRArrow service
 
-```bash
-pip install -r requirements.txt
+
 ```
 
-## To start all server instances
 
-```bash
-python run_server.py
-```
+
