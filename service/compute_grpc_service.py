@@ -27,12 +27,18 @@ class GrpcComputeService(BaseService):
             if isinstance(v, pa.Array):
             # new_stream() requires a schema, and pa.Array alone does not have a schema — only RecordBatch or Table do.
                 value = pa.RecordBatch.from_pydict({k: v})
-            writer, reader = client.do_put(upload_descriptor, value.schema)
-            if isinstance(value, pa.RecordBatch):
-                writer.write_batch(value)
-            elif isinstance(value, pa.Table):
-                writer.write_table(value)
-            writer.close()
+            if isinstance(v, pa.Scalar):
+            # new_stream() requires a schema, and pa.Array alone does not have a schema — only RecordBatch or Table do.
+                value = pa.RecordBatch.from_pydict({k: v.as_py()})
+            if value is not None and value.schema is not None:
+                writer, reader = client.do_put(upload_descriptor, value.schema)
+                if isinstance(value, pa.RecordBatch):
+                    writer.write_batch(value)
+                elif isinstance(value, pa.Table):
+                    writer.write_table(value)
+                writer.close()
+            else:
+                print(value)
 
         # Compute the model and drop dataset from gRPC server
         result_reader = client.do_get(pa.flight.Ticket(b"do_solver,cobra_lp_params,pyomo.cobra_lp"))
