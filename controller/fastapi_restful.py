@@ -36,14 +36,20 @@ async def compute(model: Annotated[UploadFile, File(), None] = None,
 
 
 @app.post("/saveModel")
-async def save(model_id: Annotated[str, None] = Form(...), 
-            model_name: str = Form(...), 
+async def save(model_id: Annotated[Optional[str], Form()] = None, 
+            model_name: Annotated[Optional[str], Form()] = None, 
             model: Annotated[UploadFile, File(), None] = None):
+    """
+        Save a model to the server.
+        :param model_id: Optional model ID
+        :param model_name: Name of the model, if not provided can use ID extracted from the model file
+        :param model: The model file to save, expected to be in .mat format
+        :return: A message indicating success or failure
+    """
     contents = await model.read()
-    
-    mat_model = endpoint.parse_model(contents)
-    aa = mat_model.to_ipc_bytes()
-    print(f"Parsed model: {aa}")
+    mat_dict = endpoint.parse_model(contents)
+    mat_model = mat_dict['engine_model']
+    ipc_dict = mat_model.to_ipc_bytes()
     # handle model saving logic
     endpoint.save_model(payload={
         "model_id": model_id,

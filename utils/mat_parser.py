@@ -5,19 +5,20 @@ import numpy as np
 from objects.engine_model import EngineModel
 import pyarrow as pa
 
-# file = request.files["matfile"]通过表单字段名获取上传的文件,然后file_bytes = file.read()读取为二进制内容（bytes）
-# 再调用这个方法build一个EngineModel
+# file = request.files["matfile"] ← get uploaded .mat file from a form field
+# file_bytes = file.read()        ← read as bytes
+# Then call this function to construct an EngineModel
 def load_model_from_mat(file_bytes: bytes) -> 'EngineModel':
+    # Load the .mat file from bytes using a BytesIO wrapper
     # https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.loadmat.html
-    data = loadmat(BytesIO(file_bytes))        # 使用 BytesIO 构造 file-like 对象并反序列化 .mat
+    data = loadmat(BytesIO(file_bytes))
 
-    # 提取model名称，除了'__header__', '__version__', '__globals__'之外的就是模型名称
+    # Extract the model name — ignore default MATLAB metadata keys: '__header__', '__version__', '__globals__'
     model_names = [key for key in data.keys() if not key.startswith('__')]
     model_name = model_names[0]
     model_data = data[model_name]
-    print(f"Model data keys: {model_data.dtype.names}")
     
-    # 提取模型数据
+    # Extract model components from the struct
     S =  sparse.csc_matrix(model_data['S'][0, 0])
     lb = np.array(_cell_to_float_list(model_data['lb'][0, 0]))
     ub = np.array(_cell_to_float_list(model_data['ub'][0, 0]))
@@ -25,9 +26,11 @@ def load_model_from_mat(file_bytes: bytes) -> 'EngineModel':
     b = np.array(_cell_to_float_list(model_data['b'][0, 0]))
     rxns = _cell_to_str_list(model_data['rxns'][0, 0])
     mets = _cell_to_str_list(model_data['mets'][0, 0])
-    csense = _cell_to_str_list(model_data['csense'][0, 0]) if 'csense' in model_data.dtype.names else None
+    # csense is a list of constraint senses, e.g., ["E", "L", "G"]
+    # if not present assume all E
+    csense = _cell_to_str_list(model_data['csense'][0, 0]) if 'csense' in model_data.dtype.names else pa.array(["E"] * len(b), type=pa.string())
     
-    # osense 可能是字符串 "max"/"min" 或数值 1/-1
+    # Objective sense may be a string ("max"/"min") or numeric (1/-1)
     if "osenseStr" in model_data.dtype.names:
         val = model_data["osenseStr"][0, 0][0]
         osense = str(val) if isinstance(val, str) else str(val[0])
@@ -36,22 +39,23 @@ def load_model_from_mat(file_bytes: bytes) -> 'EngineModel':
         val = float(model_data["osense"][0, 0][0][0])
         osense = "min" if val == 1 else "max"
     else:
-        osense = "max"  # 默认方向
+        osense = "max"  # default to maximization
         
-    # convert to pyarrow RecordBatch
-    S_coo = S.tocoo()  # 转换为 COO 格式
+    # Convert S matrix to Arrow RecordBatch in COO format
+    S_coo = S.tocoo()
     S = pa.RecordBatch.from_arrays(
         [
-            pa.array(S_coo.row.astype(np.int32)),  # 行索引
-            pa.array(S_coo.col.astype(np.int32)),  # 列索引
-            pa.array(S_coo.data.astype(np.float64))                    # 数据值
-        ],
-        schema=pa.schema([
+            pa.array(S_coo.row.astype(np.int32)),  # row index
+            pa.array(S_coo.col.astype(np.int32)),  # col index
+            pa.array(S_coo.data.astype(np.float64))  # data values
+        ],schema=pa.schema([
             ('row', pa.int32()),
             ('col', pa.int32()),
             ('data', pa.float64())
         ])
     )
+    
+    # convert to PyArrow arrays
     b = pa.array(b, type=pa.float64())
     c = pa.array(c, type=pa.float64())
     lb = pa.array(lb, type=pa.float64())
@@ -59,15 +63,19 @@ def load_model_from_mat(file_bytes: bytes) -> 'EngineModel':
     csense = pa.array(csense, type=pa.string()) if csense is not None else None
     osense = pa.scalar(osense, type=pa.string())
     
-    # 创建模型对象
+    # Construct and return the EngineModel object
     return EngineModel(model_name, S, b, c, lb, ub, osense, csense)
 
 
 
 def _cell_to_str_list(arr):
+    """Convert MATLAB cell array to a list of strings"""
     return [str(cell[0]) for cell in arr.squeeze()]
 
 def _cell_to_float_list(arr):
+    """"
+    Convert MATLAB cell or numeric array to a list of floats
+    """
     flat = np.atleast_1d(arr).squeeze()
     result = []
     for x in flat:
