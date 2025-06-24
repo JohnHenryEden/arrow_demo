@@ -1,7 +1,7 @@
 from run_server import GatewayServer
 from run_engine_service import EngineServer
 import multiprocessing
-# Run script to start http gateway server
+# Run script to start http gateway server and engine server together, for debugging and testing
 if __name__ == "__main__":
     server = GatewayServer()
     server.config_loader()

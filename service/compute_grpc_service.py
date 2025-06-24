@@ -11,7 +11,7 @@ from utils.mat_parser import load_model_from_mat
 class GrpcComputeService(BaseService):
     def __init__(self):
         self.gRPC_ip = "127.0.0.1"
-        self.gRPC_port = 8815
+        self.gRPC_port = 8101
         super().__init__()
     
                     
@@ -19,7 +19,7 @@ class GrpcComputeService(BaseService):
         client = pa.flight.connect(f"grpc://{self.gRPC_ip}:{self.gRPC_port}")
         # Upload a new dataset(test data)
         data = load_model_from_mat(model_bin)
-        ipc = data.to_pydict()
+        ipc = data.__dict__
         for k, v in ipc.items():
             upload_descriptor = pa.flight.FlightDescriptor.for_path(f"cobra_lp_params:{k}")
             value = v
@@ -29,8 +29,8 @@ class GrpcComputeService(BaseService):
                 value = pa.RecordBatch.from_pydict({k: v})
             if isinstance(v, pa.Scalar):
             # new_stream() requires a schema, and pa.Array alone does not have a schema — only RecordBatch or Table do.
-                value = pa.RecordBatch.from_pydict({k: v.as_py()})
-            if value is not None and value.schema is not None:
+                value = pa.RecordBatch.from_pydict({k: [v.as_py()]})
+            if value is not None and hasattr(value, "schema"):
                 writer, reader = client.do_put(upload_descriptor, value.schema)
                 if isinstance(value, pa.RecordBatch):
                     writer.write_batch(value)

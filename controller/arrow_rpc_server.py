@@ -17,9 +17,6 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         self._location = location
         self._repo = repo
         self._tables:dict = {}
-        
-    def set_location(self, location:str) -> None:
-        self._location = location
 
     def _make_flight_info(self, dataset):
         table = self._tables[dataset]
@@ -48,7 +45,11 @@ class FlightServer(pyarrow.flight.FlightServerBase):
             problem = dataset.split(":")[0]
             key = dataset.split(":")[1]
         try:
-            self._tables[problem][key] = data_table
+            if problem in self._tables:
+                self._tables[problem][key] = data_table
+            else:
+                self._tables[problem] = {}
+                self._tables[problem][key] = data_table
         except KeyError:
             self._tables[problem] = {}
             self._tables[problem][key] = data_table
@@ -90,18 +91,24 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         solver = solver_factory.get_solver(solver_name)
         # run solver and get result in form of pa table
         result = solver.run(input_params)
-        # print results
         logger.info(result)
-        return pa.flight.RecordBatchStream(result)
+        names = []
+        pa_arrays = []
+        for k, v in result.items():
+            names.append(k)
+            pa_arrays.append(pa.array([v]))
+            
+        result_table = pa.Table.from_arrays(pa_arrays, names=names)
+        return pa.flight.RecordBatchStream(result_table)
 
 def grpc_serve_addr(ipaddr:str, port:int, ext_logger) -> None:
-    server = FlightServer()
     logger = ext_logger
     if ipaddr is not None and port is not None:
-        server.set_location(f"grpc://{ipaddr}:{port}")
+        server = FlightServer(location=f"grpc://{ipaddr}:{port}")
+    else:
+        server = FlightServer()
     server._repo.mkdir(exist_ok=True)
     logger.info("Server running at " + server._location)
-    time.sleep(5)
     server.serve()
 # Use when run standalone
 def grpc_serve() -> None:
