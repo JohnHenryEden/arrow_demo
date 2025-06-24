@@ -26,11 +26,7 @@ class CobraLP(BaseSolver):
     def run(self, params:dict) -> dict:
         # Convert the data into an model acceptable format
         for k, v in params.items():
-            item:dict = v.to_pydict()
-            if k in item:
-                self.model[k] = item.get(k)
-            else:
-                self.model[k] = v.to_pydict()
+            self.model[k] = v
         # Send the data to model
         # Get results
         return self.model

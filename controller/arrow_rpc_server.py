@@ -6,6 +6,8 @@ from service.optimization_service.solver_factory import SolverFactory
 import logging
 import sys
 import time
+from utils.dict_to_pa_table import dict_to_pa_table, unpack_pa_table_dict
+
 solver_factory = SolverFactory()
 logger = logging.getLogger(__name__)
 
@@ -44,15 +46,17 @@ class FlightServer(pyarrow.flight.FlightServerBase):
         if dataset.find(":") > 0:
             problem = dataset.split(":")[0]
             key = dataset.split(":")[1]
-        try:
-            if problem in self._tables:
-                self._tables[problem][key] = data_table
-            else:
+            try:
+                if problem in self._tables:
+                    self._tables[problem][key] = data_table
+                else:
+                    self._tables[problem] = {}
+                    self._tables[problem][key] = data_table
+            except KeyError:
                 self._tables[problem] = {}
                 self._tables[problem][key] = data_table
-        except KeyError:
-            self._tables[problem] = {}
-            self._tables[problem][key] = data_table
+        else:
+            self._tables[dataset] = data_table
 
     def do_get(self, context, ticket):
         ticket_str:str = ticket.ticket.decode()
@@ -79,26 +83,20 @@ class FlightServer(pyarrow.flight.FlightServerBase):
 
     # Drop all dataset related to a task
     def do_drop_dataset(self, dataset):
-        self._tables[dataset] = {}
+        self._tables[dataset] = None
     # Execute a solver
     def do_solver(self, param:str):
         params = param.split(',')
         dataset = params[1]
         solver_name = params[2]
         # get data from memory
-        input_params = self._tables.get(dataset)
+        input_params:dict = unpack_pa_table_dict(self._tables.get(dataset))
         # get solver
         solver = solver_factory.get_solver(solver_name)
         # run solver and get result in form of pa table
         result = solver.run(input_params)
         logger.info(result)
-        names = []
-        pa_arrays = []
-        for k, v in result.items():
-            names.append(k)
-            pa_arrays.append(pa.array([v]))
-            
-        result_table = pa.Table.from_arrays(pa_arrays, names=names)
+        result_table = dict_to_pa_table(result)
         return pa.flight.RecordBatchStream(result_table)
 
 def grpc_serve_addr(ipaddr:str, port:int, ext_logger) -> None:
